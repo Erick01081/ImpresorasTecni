@@ -142,7 +142,7 @@ export default function FormularioImpresora({
         const nuevaImpresora: Impresora = await respuesta.json();
 
         // Generar y descargar PDF automáticamente
-        const pdfBlob = generarPDFRegistro(nuevaImpresora);
+        const pdfBlob = await generarPDFRegistro(nuevaImpresora);
         const nombreArchivo = `Registro_${nuevaImpresora.referencia}_${nuevaImpresora.id}.pdf`;
         descargarPDF(pdfBlob, nombreArchivo);
 

@@ -232,7 +232,7 @@ export default function HomePage(): JSX.Element {
         await cargarImpresoras();
 
         // Generar y descargar PDF
-        const pdfBlob = generarPDFEntrega(impresoraActualizada);
+        const pdfBlob = await generarPDFEntrega(impresoraActualizada);
         const nombreArchivo = `Entrega_${impresoraActualizada.referencia}_${impresoraActualizada.id}.pdf`;
         descargarPDF(pdfBlob, nombreArchivo);
 

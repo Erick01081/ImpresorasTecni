@@ -22,35 +22,98 @@ function verificarYPaginar(doc: jsPDF, yPos: number, espacioNecesario: number, p
 }
 
 /**
+ * Carga una imagen desde una URL y la convierte a base64
+ * 
+ * Esta función carga una imagen desde una URL y la convierte a formato base64
+ * para poder ser utilizada en jsPDF. Si falla la carga, retorna null.
+ * 
+ * Complejidad: O(1) - Operación asíncrona de carga de imagen
+ * 
+ * @param url - URL de la imagen a cargar (string)
+ * @returns Promise que resuelve con la imagen en base64 o null si falla (Promise<string | null>)
+ */
+async function cargarImagenBase64(url: string): Promise<string | null> {
+  try {
+    const respuesta = await fetch(url);
+    const blob = await respuesta.blob();
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const base64 = reader.result as string;
+        resolve(base64);
+      };
+      reader.onerror = () => resolve(null);
+      reader.readAsDataURL(blob);
+    });
+  } catch (error) {
+    console.error('Error al cargar imagen:', error);
+    return null;
+  }
+}
+
+/**
+ * Agrega el logo al PDF en la posición especificada
+ * 
+ * Esta función intenta cargar el logo desde /logo.png y agregarlo al PDF.
+ * Si no puede cargar el logo, continúa sin él.
+ * 
+ * Complejidad: O(1) - Operación asíncrona
+ * 
+ * @param doc - Documento jsPDF
+ * @param x - Posición X donde colocar el logo (number)
+ * @param y - Posición Y donde colocar el logo (number)
+ * @param width - Ancho del logo en puntos (number, opcional, default: 40)
+ * @param height - Alto del logo en puntos (number, opcional, default: 20)
+ */
+async function agregarLogo(doc: jsPDF, x: number, y: number, width: number = 40, height: number = 20): Promise<void> {
+  try {
+    const logoBase64 = await cargarImagenBase64('/logo.png');
+    if (logoBase64) {
+      doc.addImage(logoBase64, 'PNG', x, y, width, height);
+    }
+  } catch (error) {
+    console.error('Error al agregar logo al PDF:', error);
+  }
+}
+
+/**
  * Genera un PDF inicial de registro de impresora
  * 
  * Esta función crea un documento PDF con todos los datos de la impresora
  * registrada, incluyendo un espacio visible para la firma del cliente.
  * El PDF se genera con formato profesional y legible, con paginación automática
- * si el contenido excede una página. Incluye el número de caso consecutivo.
+ * si el contenido excede una página. Incluye el número de caso consecutivo y el logo.
  * 
  * Complejidad: O(1) - Operaciones constantes de generación de PDF
  * 
  * @param impresora - Datos de la impresora a incluir en el PDF (Impresora)
- * @returns Blob del PDF generado (Blob)
+ * @returns Promise que resuelve con el Blob del PDF generado (Promise<Blob>)
  */
-export function generarPDFRegistro(impresora: Impresora): Blob {
+export async function generarPDFRegistro(impresora: Impresora): Promise<Blob> {
   const doc = new jsPDF();
   const pageWidth = doc.internal.pageSize.getWidth();
   const pageHeight = doc.internal.pageSize.getHeight();
   const margin = 20;
   let yPos = margin;
 
+  // Logo centrado en la parte superior
+  const logoWidth = 120;
+  const logoHeight = 20;
+  const logoX = (pageWidth - logoWidth) / 2; // Centrar horizontalmente
+  await agregarLogo(doc, logoX, yPos, logoWidth, logoHeight);
+  yPos += logoHeight + 10; // Espacio después del logo
+
   // Título
   doc.setFontSize(18);
   doc.setFont('helvetica', 'bold');
   doc.text('REGISTRO DE INGRESO DE IMPRESORA', pageWidth / 2, yPos, { align: 'center' });
-  yPos += 15;
+  yPos += 10;
 
   // Número de caso
   doc.setFontSize(10);
   doc.setFont('helvetica', 'normal');
-  doc.text(`Número de Caso: ${impresora.numeroCaso}`, pageWidth - margin, yPos - 10, { align: 'right' });
+  doc.text(`Número de Caso: ${impresora.numeroCaso}`, pageWidth - margin, yPos, { align: 'right' });
+  yPos += 8;
 
   // Línea separadora
   doc.setLineWidth(0.5);
@@ -135,6 +198,18 @@ export function generarPDFRegistro(impresora: Impresora): Blob {
 
   doc.text('Fecha:', margin + 20, yPos);
   doc.text(new Date(impresora.fechaIngreso).toLocaleDateString('es-CO'), margin + 20, yPos + 6);
+  yPos += 15;
+
+  // Información de contacto
+  yPos = verificarYPaginar(doc, yPos, 20, pageHeight, margin);
+  doc.setLineWidth(0.5);
+  doc.line(margin, yPos, pageWidth - margin, yPos);
+  yPos += 10;
+  
+  doc.setFontSize(9);
+  doc.setFont('helvetica', 'normal');
+  const contactoTexto = '601 211-0216    •    57 311-2757417    •    57 321-9671908    •    ventas@tecnirecargas.com    •    www.tecnirecargas.com';
+  doc.text(contactoTexto, pageWidth / 2, yPos, { align: 'center' });
 
   // Generar blob
   const pdfBlob = doc.output('blob');
@@ -148,30 +223,38 @@ export function generarPDFRegistro(impresora: Impresora): Blob {
  * la impresora, fecha de entrega, confirmación de recepción y declaración
  * de garantía de 30 días. Incluye espacio visible para la firma del cliente.
  * Maneja paginación automática si el contenido excede una página.
- * Incluye el número de caso consecutivo.
+ * Incluye el número de caso consecutivo y el logo.
  * 
  * Complejidad: O(1) - Operaciones constantes de generación de PDF
  * 
  * @param impresora - Datos completos de la impresora (Impresora)
- * @returns Blob del PDF generado (Blob)
+ * @returns Promise que resuelve con el Blob del PDF generado (Promise<Blob>)
  */
-export function generarPDFEntrega(impresora: Impresora): Blob {
+export async function generarPDFEntrega(impresora: Impresora): Promise<Blob> {
   const doc = new jsPDF();
   const pageWidth = doc.internal.pageSize.getWidth();
   const pageHeight = doc.internal.pageSize.getHeight();
   const margin = 20;
   let yPos = margin;
 
+  // Logo centrado en la parte superior
+  const logoWidth = 120;
+  const logoHeight = 20;
+  const logoX = (pageWidth - logoWidth) / 2; // Centrar horizontalmente
+  await agregarLogo(doc, logoX, yPos, logoWidth, logoHeight);
+  yPos += logoHeight + 10; // Espacio después del logo
+
   // Título
   doc.setFontSize(18);
   doc.setFont('helvetica', 'bold');
   doc.text('ACTA DE ENTREGA Y GARANTÍA', pageWidth / 2, yPos, { align: 'center' });
-  yPos += 15;
+  yPos += 10;
 
   // Número de caso
   doc.setFontSize(10);
   doc.setFont('helvetica', 'normal');
-  doc.text(`Número de Caso: ${impresora.numeroCaso}`, pageWidth - margin, yPos - 10, { align: 'right' });
+  doc.text(`Número de Caso: ${impresora.numeroCaso}`, pageWidth - margin, yPos, { align: 'right' });
+  yPos += 8;
 
   // Línea separadora
   doc.setLineWidth(0.5);
@@ -332,6 +415,18 @@ export function generarPDFEntrega(impresora: Impresora): Blob {
 
   doc.text('Fecha:', margin + 20, yPos);
   doc.text(fechaEntrega, margin + 20, yPos + 6);
+  yPos += 15;
+
+  // Información de contacto
+  yPos = verificarYPaginar(doc, yPos, 20, pageHeight, margin);
+  doc.setLineWidth(0.5);
+  doc.line(margin, yPos, pageWidth - margin, yPos);
+  yPos += 10;
+  
+  doc.setFontSize(9);
+  doc.setFont('helvetica', 'normal');
+  const contactoTexto = '601 211-0216    •    57 311-2757417    •    57 321-9671908    •    ventas@tecnirecargas.com, tecnirecargas.com';
+  doc.text(contactoTexto, pageWidth / 2, yPos, { align: 'center' });
 
   // Generar blob
   const pdfBlob = doc.output('blob');
