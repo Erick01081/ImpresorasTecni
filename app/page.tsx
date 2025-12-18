@@ -24,6 +24,7 @@ export default function HomePage(): JSX.Element {
   const [modalCrearAbierto, setModalCrearAbierto] = useState<boolean>(false);
   const [impresoraEditar, setImpresoraEditar] = useState<Impresora | null>(null);
   const [terminoBusqueda, setTerminoBusqueda] = useState<string>('');
+  const [filtroEstado, setFiltroEstado] = useState<EstadoCaso | 'todos'>('todos');
   const [modalCerrarCasoAbierto, setModalCerrarCasoAbierto] = useState<boolean>(false);
   const [impresoraCerrarCaso, setImpresoraCerrarCaso] = useState<Impresora | null>(null);
   const [modalEnProcesoAbierto, setModalEnProcesoAbierto] = useState<boolean>(false);
@@ -248,11 +249,17 @@ export default function HomePage(): JSX.Element {
   };
 
   /**
-   * Filtra las impresoras según el término de búsqueda
+   * Filtra las impresoras según el término de búsqueda y el estado
    * Complejidad: O(n) donde n es el número de impresoras
    * @returns Array de impresoras filtradas
    */
   const impresorasFiltradas = impresoras.filter((impresora) => {
+    // Filtro por estado
+    if (filtroEstado !== 'todos' && impresora.estado !== filtroEstado) {
+      return false;
+    }
+
+    // Filtro por término de búsqueda
     if (!terminoBusqueda.trim()) {
       return true;
     }
@@ -301,63 +308,94 @@ export default function HomePage(): JSX.Element {
           </button>
         </div>
 
-        {/* Buscador */}
+        {/* Buscador y Filtros */}
         <div className="mb-6">
           <div className="bg-white rounded-lg shadow-md p-4">
-            <div className="relative">
-              <input
-                type="text"
-                value={terminoBusqueda}
-                onChange={(e) => setTerminoBusqueda(e.target.value)}
-                placeholder="Buscar por referencia, cliente, NIT/CC o teléfono..."
-                className="w-full px-4 py-3 pl-10 pr-10 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-gray-900 bg-white"
-              />
-              <svg
-                className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+            <div className="flex flex-col md:flex-row gap-4">
+              {/* Buscador */}
+              <div className="flex-1 relative">
+                <input
+                  type="text"
+                  value={terminoBusqueda}
+                  onChange={(e) => setTerminoBusqueda(e.target.value)}
+                  placeholder="Buscar por referencia, cliente, NIT/CC o teléfono..."
+                  className="w-full px-4 py-3 pl-10 pr-10 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-gray-900 bg-white"
                 />
-              </svg>
-              {terminoBusqueda && (
-                <button
-                  onClick={() => setTerminoBusqueda('')}
-                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                  aria-label="Limpiar búsqueda"
+                <svg
+                  className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
                 >
-                  <svg
-                    className="h-5 w-5"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                  />
+                </svg>
+                {terminoBusqueda && (
+                  <button
+                    onClick={() => setTerminoBusqueda('')}
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                    aria-label="Limpiar búsqueda"
                   >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M6 18L18 6M6 6l12 12"
-                    />
-                  </svg>
-                </button>
-              )}
+                    <svg
+                      className="h-5 w-5"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M6 18L18 6M6 6l12 12"
+                      />
+                    </svg>
+                  </button>
+                )}
+              </div>
+
+              {/* Filtro por Estado */}
+              <div className="md:w-48">
+                <select
+                  value={filtroEstado}
+                  onChange={(e) => setFiltroEstado(e.target.value as EstadoCaso | 'todos')}
+                  className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-gray-900 bg-white"
+                >
+                  <option value="todos">Todos los Estados</option>
+                  <option value="pendiente">Pendiente</option>
+                  <option value="en_proceso">En Proceso</option>
+                  <option value="resuelto">Resuelto</option>
+                </select>
+              </div>
             </div>
-            {terminoBusqueda && (
-              <p className="mt-2 text-sm text-gray-600">
-                {impresorasFiltradas.length === 0
-                  ? 'No se encontraron impresoras'
-                  : `${impresorasFiltradas.length} impresora${impresorasFiltradas.length !== 1 ? 's' : ''} encontrada${impresorasFiltradas.length !== 1 ? 's' : ''}`}
-              </p>
+
+            {(terminoBusqueda || filtroEstado !== 'todos') && (
+              <div className="mt-3 flex flex-wrap items-center gap-2">
+                <p className="text-sm text-gray-600">
+                  {impresorasFiltradas.length === 0
+                    ? 'No se encontraron impresoras'
+                    : `${impresorasFiltradas.length} impresora${impresorasFiltradas.length !== 1 ? 's' : ''} encontrada${impresorasFiltradas.length !== 1 ? 's' : ''}`}
+                </p>
+                {(terminoBusqueda || filtroEstado !== 'todos') && (
+                  <button
+                    onClick={() => {
+                      setTerminoBusqueda('');
+                      setFiltroEstado('todos');
+                    }}
+                    className="text-sm text-primary-600 hover:text-primary-700 font-medium"
+                  >
+                    Limpiar filtros
+                  </button>
+                )}
+              </div>
             )}
           </div>
         </div>
 
-        {impresoras.length === 0 && !terminoBusqueda ? (
+        {impresoras.length === 0 && !terminoBusqueda && filtroEstado === 'todos' ? (
           <div className="bg-white rounded-lg shadow-md p-6 sm:p-8 text-center">
             <p className="text-gray-500 text-base sm:text-lg">No hay impresoras registradas</p>
             <p className="text-gray-400 mt-2 text-sm sm:text-base">
