@@ -320,3 +320,4 @@ export async function eliminarImpresora(id: string): Promise<boolean> {
   return false;
 }
 
+

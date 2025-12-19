@@ -127,3 +127,4 @@ impresorasTecni/
 - Los cambios de estado se registran con sello de tiempo
 - La interfaz es completamente responsive
 
+

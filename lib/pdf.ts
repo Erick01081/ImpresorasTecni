@@ -22,31 +22,74 @@ function verificarYPaginar(doc: jsPDF, yPos: number, espacioNecesario: number, p
 }
 
 /**
- * Carga una imagen desde una URL y la convierte a base64
+ * Comprime y redimensiona una imagen usando canvas
  * 
- * Esta función carga una imagen desde una URL y la convierte a formato base64
- * para poder ser utilizada en jsPDF. Si falla la carga, retorna null.
+ * Esta función carga una imagen, la redimensiona y comprime para reducir
+ * significativamente su tamaño antes de agregarla al PDF.
+ * Maneja correctamente imágenes con transparencia reemplazando el fondo
+ * transparente con blanco antes de convertir a JPEG.
  * 
- * Complejidad: O(1) - Operación asíncrona de carga de imagen
+ * Complejidad: O(1) - Operación asíncrona de procesamiento de imagen
  * 
  * @param url - URL de la imagen a cargar (string)
- * @returns Promise que resuelve con la imagen en base64 o null si falla (Promise<string | null>)
+ * @param maxWidth - Ancho máximo en píxeles (number, default: 400)
+ * @param maxHeight - Alto máximo en píxeles (number, default: 200)
+ * @param quality - Calidad de compresión 0-1 (number, default: 0.7)
+ * @returns Promise que resuelve con la imagen comprimida en base64 o null si falla (Promise<string | null>)
  */
-async function cargarImagenBase64(url: string): Promise<string | null> {
+async function cargarYComprimirImagen(url: string, maxWidth: number = 400, maxHeight: number = 200, quality: number = 0.7): Promise<string | null> {
   try {
     const respuesta = await fetch(url);
     const blob = await respuesta.blob();
-    return new Promise((resolve, reject) => {
+    
+    return new Promise((resolve) => {
+      const img = new Image();
       const reader = new FileReader();
+      
       reader.onloadend = () => {
-        const base64 = reader.result as string;
-        resolve(base64);
+        img.onload = () => {
+          // Calcular dimensiones manteniendo proporción
+          let width = img.width;
+          let height = img.height;
+          
+          if (width > maxWidth || height > maxHeight) {
+            const ratio = Math.min(maxWidth / width, maxHeight / height);
+            width = width * ratio;
+            height = height * ratio;
+          }
+          
+          // Crear canvas para comprimir
+          const canvas = document.createElement('canvas');
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          
+          if (!ctx) {
+            resolve(null);
+            return;
+          }
+          
+          // Rellenar fondo blanco para manejar transparencia
+          ctx.fillStyle = '#FFFFFF';
+          ctx.fillRect(0, 0, width, height);
+          
+          // Dibujar imagen redimensionada sobre el fondo blanco
+          ctx.drawImage(img, 0, 0, width, height);
+          
+          // Convertir a base64 con compresión JPEG
+          const base64 = canvas.toDataURL('image/jpeg', quality);
+          resolve(base64);
+        };
+        
+        img.onerror = () => resolve(null);
+        img.src = reader.result as string;
       };
+      
       reader.onerror = () => resolve(null);
       reader.readAsDataURL(blob);
     });
   } catch (error) {
-    console.error('Error al cargar imagen:', error);
+    console.error('Error al cargar y comprimir imagen:', error);
     return null;
   }
 }
@@ -54,7 +97,8 @@ async function cargarImagenBase64(url: string): Promise<string | null> {
 /**
  * Agrega el logo al PDF en la posición especificada
  * 
- * Esta función intenta cargar el logo desde /logo.png y agregarlo al PDF.
+ * Esta función intenta cargar el logo desde /logo.png, lo comprime y lo agrega al PDF.
+ * La imagen se comprime para reducir significativamente el tamaño del PDF.
  * Si no puede cargar el logo, continúa sin él.
  * 
  * Complejidad: O(1) - Operación asíncrona
@@ -67,9 +111,13 @@ async function cargarImagenBase64(url: string): Promise<string | null> {
  */
 async function agregarLogo(doc: jsPDF, x: number, y: number, width: number = 40, height: number = 20): Promise<void> {
   try {
-    const logoBase64 = await cargarImagenBase64('/logo.png');
+    // Comprimir imagen con mejor calidad: máximo 400x200 píxeles con calidad 0.8 (80%)
+    // Balance entre calidad visual y tamaño del PDF
+    // El logo se muestra pequeño (120x20 puntos = ~42x7 mm), pero necesita buena calidad
+    const logoBase64 = await cargarYComprimirImagen('/logo.png', 400, 200, 0.8);
     if (logoBase64) {
-      doc.addImage(logoBase64, 'PNG', x, y, width, height);
+      // Usar JPEG comprimido en lugar de PNG para reducir tamaño
+      doc.addImage(logoBase64, 'JPEG', x, y, width, height);
     }
   } catch (error) {
     console.error('Error al agregar logo al PDF:', error);
@@ -454,3 +502,4 @@ export function descargarPDF(blob: Blob, nombreArchivo: string): void {
   document.body.removeChild(link);
   URL.revokeObjectURL(url);
 }
+

@@ -39,3 +39,4 @@ export interface Impresora {
   numeroCaso: number;
 }
 
+
