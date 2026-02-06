@@ -84,8 +84,8 @@ export default function ListaImpresoras({
       const nombreArchivo = `Listado_Impresoras_${fechaActual}.pdf`;
       descargarPDF(pdfBlob, nombreArchivo);
     } catch (error) {
-      console.error('Error al generar PDF:', error);
-      alert('Error al generar el PDF. Por favor, intente nuevamente.');
+      console.error('Error al generar PDF del listado:', error);
+      alert('No se pudo generar el PDF del listado de impresoras. Por favor, verifique que hay impresoras registradas e intente nuevamente.');
     }
   };
 
