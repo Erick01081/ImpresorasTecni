@@ -203,16 +203,20 @@ export async function generarPDFRegistro(impresora: Impresora): Promise<Blob> {
     doc.setFont('helvetica', 'normal');
     
     // Calcular espacio disponible para observaciones
-    // Espacio fijo para firma: 6 + 12 + 10 + 25 + 8 + 10 + 12 + 8 + 8 = ~100 puntos
-    const espacioParaFirma = 100;
-    const espacioDisponible = pageHeight - margin - yPos - espacioParaFirma;
+    // Espacio fijo para firma: línea separadora (6) + espacio antes de título (12) + título (10) + 
+    // área de firma (25) + espacio después (8) + datos cliente (10) + datos fecha (12) + 
+    // línea contacto (8) + contacto (8) = 99 puntos
+    // Redondeado a 105 para margen de seguridad
+    const ESPACIO_FIRMA = 105;
+    const espacioDisponible = pageHeight - margin - yPos - ESPACIO_FIRMA;
     
     // Dividir el texto en líneas usando un ancho fijo
     doc.setFontSize(10);
     const observacionesLines = doc.splitTextToSize(impresora.observaciones, pageWidth - 2 * margin);
     
     // Calcular el alto de línea necesario para que todo quepa
-    // Usar un mínimo de 4 puntos y máximo de 5 puntos por línea
+    // Línea de 5pt proporciona buena legibilidad, 4pt es aceptable, 3.5pt es el mínimo legible
+    const MIN_LINE_HEIGHT = 3.5; // Mínimo para mantener legibilidad
     let lineHeight = 5;
     let totalHeight = observacionesLines.length * lineHeight;
     
@@ -222,17 +226,29 @@ export async function generarPDFRegistro(impresora: Impresora): Promise<Blob> {
       totalHeight = observacionesLines.length * lineHeight;
     }
     
-    // Si aún no cabe, reducir el tamaño de fuente
+    // Si aún no cabe, reducir el tamaño de fuente y ajustar line height dinámicamente
     if (totalHeight > espacioDisponible) {
       doc.setFontSize(9);
       const newLines = doc.splitTextToSize(impresora.observaciones, pageWidth - 2 * margin);
-      lineHeight = Math.max(3.5, espacioDisponible / newLines.length);
+      const calculatedLineHeight = espacioDisponible / newLines.length;
       
-      // Mostrar todas las líneas con el nuevo tamaño
-      newLines.forEach((line: string) => {
-        doc.text(line, margin, yPos);
-        yPos += lineHeight;
-      });
+      // Verificar que el line height calculado sea legible
+      if (calculatedLineHeight >= MIN_LINE_HEIGHT) {
+        lineHeight = calculatedLineHeight;
+        // Mostrar todas las líneas con el tamaño y espaciado ajustado
+        newLines.forEach((line: string) => {
+          doc.text(line, margin, yPos);
+          yPos += lineHeight;
+        });
+      } else {
+        // Si el texto es extremadamente largo (más de ~175 líneas), usar mínimo legible
+        // y aceptar que puede extenderse ligeramente, pero priorizar legibilidad
+        lineHeight = MIN_LINE_HEIGHT;
+        newLines.forEach((line: string) => {
+          doc.text(line, margin, yPos);
+          yPos += lineHeight;
+        });
+      }
     } else {
       // Mostrar todas las líneas con tamaño normal
       observacionesLines.forEach((line: string) => {
