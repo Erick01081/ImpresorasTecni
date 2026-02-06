@@ -1,5 +1,5 @@
 import { jsPDF } from 'jspdf';
-import { Impresora } from '@/types/impresora';
+import { Impresora, EstadoCaso } from '@/types/impresora';
 
 /**
  * Función auxiliar para verificar si se necesita una nueva página y crearla si es necesario
@@ -474,6 +474,154 @@ export async function generarPDFEntrega(impresora: Impresora): Promise<Blob> {
   doc.setFontSize(9);
   doc.setFont('helvetica', 'normal');
   const contactoTexto = '601 211-0216    •    57 311-2757417    •    57 321-9671908    •    ventas@tecnirecargas.com, tecnirecargas.com';
+  doc.text(contactoTexto, pageWidth / 2, yPos, { align: 'center' });
+
+  // Generar blob
+  const pdfBlob = doc.output('blob');
+  return pdfBlob;
+}
+
+/**
+ * Genera un PDF con el listado completo de impresoras
+ * 
+ * Esta función crea un documento PDF con todas las impresoras del sistema
+ * organizadas en formato de tabla legible, mostrando la información clave
+ * de cada impresora (referencia, cliente, NIT/CC, teléfono, fecha de ingreso,
+ * estado y observaciones). Incluye paginación automática si hay muchas impresoras.
+ * 
+ * Complejidad: O(n) donde n es el número de impresoras
+ * 
+ * @param impresoras - Array de impresoras a incluir en el listado (Impresora[])
+ * @returns Promise que resuelve con el Blob del PDF generado (Promise<Blob>)
+ */
+export async function generarPDFListado(impresoras: Impresora[]): Promise<Blob> {
+  const doc = new jsPDF();
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const pageHeight = doc.internal.pageSize.getHeight();
+  const margin = 15;
+  let yPos = margin;
+
+  // Logo centrado en la parte superior
+  const logoWidth = 100;
+  const logoHeight = 17;
+  const logoX = (pageWidth - logoWidth) / 2;
+  await agregarLogo(doc, logoX, yPos, logoWidth, logoHeight);
+  yPos += logoHeight + 8;
+
+  // Título
+  doc.setFontSize(16);
+  doc.setFont('helvetica', 'bold');
+  doc.text('LISTADO DE IMPRESORAS', pageWidth / 2, yPos, { align: 'center' });
+  yPos += 8;
+
+  // Fecha del reporte
+  doc.setFontSize(9);
+  doc.setFont('helvetica', 'normal');
+  const fechaReporte = new Date().toLocaleDateString('es-CO', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  });
+  doc.text(`Fecha del reporte: ${fechaReporte}`, pageWidth / 2, yPos, { align: 'center' });
+  yPos += 6;
+
+  // Total de impresoras
+  doc.text(`Total de impresoras: ${impresoras.length}`, pageWidth / 2, yPos, { align: 'center' });
+  yPos += 8;
+
+  // Línea separadora
+  doc.setLineWidth(0.5);
+  doc.line(margin, yPos, pageWidth - margin, yPos);
+  yPos += 8;
+
+  // Función auxiliar para obtener el texto del estado
+  const obtenerTextoEstado = (estado: EstadoCaso): string => {
+    switch (estado) {
+      case 'pendiente':
+        return 'Pendiente';
+      case 'en_proceso':
+        return 'En Proceso';
+      case 'resuelto':
+        return 'Resuelto';
+      default:
+        return estado;
+    }
+  };
+
+  // Recorrer cada impresora y agregarla al PDF
+  impresoras.forEach((impresora, index) => {
+    // Verificar si necesitamos una nueva página
+    // Espacio necesario: título (5) + datos (6*5) + observaciones (variable) + separador (3) = ~40
+    const espacioNecesario = 40;
+    yPos = verificarYPaginar(doc, yPos, espacioNecesario, pageHeight, margin);
+
+    // Número de caso y referencia
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'bold');
+    doc.text(`#${impresora.numeroCaso} - ${impresora.referencia}`, margin, yPos);
+    yPos += 5;
+
+    // Información de la impresora
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'normal');
+    
+    const datos = [
+      `Cliente: ${impresora.cliente}`,
+      `NIT/CC: ${impresora.nitCC}`,
+      `Teléfono: ${impresora.telefono}`,
+      `Fecha Ingreso: ${new Date(impresora.fechaIngreso).toLocaleDateString('es-CO', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric'
+      })}`,
+      `Estado: ${obtenerTextoEstado(impresora.estado)}`,
+    ];
+
+    datos.forEach((linea) => {
+      yPos = verificarYPaginar(doc, yPos, 5, pageHeight, margin);
+      doc.text(linea, margin + 3, yPos);
+      yPos += 5;
+    });
+
+    // Observaciones si existen
+    if (impresora.observaciones && impresora.observaciones.trim()) {
+      yPos = verificarYPaginar(doc, yPos, 10, pageHeight, margin);
+      doc.setFont('helvetica', 'italic');
+      const obsTexto = `Observaciones: ${impresora.observaciones}`;
+      const obsLines = doc.splitTextToSize(obsTexto, pageWidth - 2 * margin - 6);
+      
+      obsLines.forEach((line: string) => {
+        yPos = verificarYPaginar(doc, yPos, 4, pageHeight, margin);
+        doc.text(line, margin + 3, yPos);
+        yPos += 4;
+      });
+      doc.setFont('helvetica', 'normal');
+    }
+
+    // Separador entre impresoras (excepto la última)
+    if (index < impresoras.length - 1) {
+      yPos += 2;
+      yPos = verificarYPaginar(doc, yPos, 3, pageHeight, margin);
+      doc.setDrawColor(220, 220, 220);
+      doc.setLineWidth(0.3);
+      doc.line(margin, yPos, pageWidth - margin, yPos);
+      yPos += 5;
+      doc.setDrawColor(0, 0, 0);
+    }
+  });
+
+  // Información de contacto al final
+  yPos = verificarYPaginar(doc, yPos, 15, pageHeight, margin);
+  yPos += 5;
+  doc.setLineWidth(0.5);
+  doc.line(margin, yPos, pageWidth - margin, yPos);
+  yPos += 8;
+  
+  doc.setFontSize(8);
+  doc.setFont('helvetica', 'normal');
+  const contactoTexto = '601 211-0216    •    57 311-2757417    •    57 321-9671908    •    ventas@tecnirecargas.com    •    www.tecnirecargas.com';
   doc.text(contactoTexto, pageWidth / 2, yPos, { align: 'center' });
 
   // Generar blob
