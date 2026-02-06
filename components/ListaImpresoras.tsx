@@ -1,7 +1,7 @@
 'use client';
 
 import { Impresora, EstadoCaso } from '@/types/impresora';
-import { generarPDFListado, descargarPDF } from '@/lib/pdf';
+import { generarPDFListado, generarPDFRegistro, descargarPDF } from '@/lib/pdf';
 
 interface ListaImpresorasProps {
   impresoras: Impresora[];
@@ -89,6 +89,21 @@ export default function ListaImpresoras({
     }
   };
 
+  /**
+   * Maneja la descarga del PDF de registro de una impresora individual
+   * Complejidad: O(1)
+   */
+  const manejarDescargarPDFIndividual = async (impresora: Impresora): Promise<void> => {
+    try {
+      const pdfBlob = await generarPDFRegistro(impresora);
+      const nombreArchivo = `Registro_${impresora.referencia}_${impresora.numeroCaso}.pdf`;
+      descargarPDF(pdfBlob, nombreArchivo);
+    } catch (error) {
+      console.error('Error al generar PDF de registro:', error);
+      alert('No se pudo generar el PDF de registro. Por favor, intente nuevamente.');
+    }
+  };
+
   return (
     <>
       {/* Botón para descargar listado en PDF */}
@@ -152,6 +167,12 @@ export default function ListaImpresoras({
                   className="w-full text-blue-700 bg-blue-50 hover:bg-blue-100 active:bg-blue-200 px-4 py-2.5 rounded-lg transition-colors font-medium text-sm"
                 >
                   Editar
+                </button>
+                <button
+                  onClick={() => manejarDescargarPDFIndividual(impresora)}
+                  className="w-full text-purple-700 bg-purple-50 hover:bg-purple-100 active:bg-purple-200 px-4 py-2.5 rounded-lg transition-colors font-medium text-sm"
+                >
+                  Descargar PDF
                 </button>
                 <select
                   value={impresora.estado}
@@ -255,6 +276,13 @@ export default function ListaImpresoras({
                           title="Editar impresora"
                         >
                           Editar
+                        </button>
+                        <button
+                          onClick={() => manejarDescargarPDFIndividual(impresora)}
+                          className="text-purple-600 hover:text-purple-900 bg-purple-50 hover:bg-purple-100 px-3 py-1 rounded transition-colors text-xs"
+                          title="Descargar PDF de registro"
+                        >
+                          Descargar PDF
                         </button>
                         <select
                           value={impresora.estado}
