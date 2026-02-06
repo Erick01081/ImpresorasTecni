@@ -142,6 +142,9 @@ export async function generarPDFRegistro(impresora: Impresora): Promise<Blob> {
   const pageWidth = doc.internal.pageSize.getWidth();
   const margin = 20;
   let yPos = margin;
+  
+  // Constante para limitar observaciones y garantizar una sola página
+  const MAX_OBSERVATION_LINES = 3;
 
   // Logo centrado en la parte superior
   const logoWidth = 100;
@@ -193,7 +196,7 @@ export async function generarPDFRegistro(impresora: Impresora): Promise<Blob> {
     yPos += 7;
   });
 
-  // Observaciones si existen (limitadas a 3 líneas máximo)
+  // Observaciones si existen (limitadas para garantizar una sola página)
   if (impresora.observaciones && impresora.observaciones.trim()) {
     yPos += 3;
     doc.setFont('helvetica', 'bold');
@@ -203,13 +206,13 @@ export async function generarPDFRegistro(impresora: Impresora): Promise<Blob> {
     doc.setFontSize(10);
     const observacionesLines = doc.splitTextToSize(impresora.observaciones, pageWidth - 2 * margin);
     
-    // Limitar a las primeras 3 líneas para que quepa en una página
-    const maxLines = Math.min(observacionesLines.length, 3);
+    // Limitar observaciones usando la constante
+    const maxLines = Math.min(observacionesLines.length, MAX_OBSERVATION_LINES);
     for (let i = 0; i < maxLines; i++) {
       doc.text(observacionesLines[i], margin, yPos);
       yPos += 5;
     }
-    if (observacionesLines.length > 3) {
+    if (observacionesLines.length > MAX_OBSERVATION_LINES) {
       doc.text('...', margin, yPos);
       yPos += 5;
     }

@@ -100,7 +100,7 @@ export default function ListaImpresoras({
       descargarPDF(pdfBlob, nombreArchivo);
     } catch (error) {
       console.error('Error al generar PDF de registro:', error);
-      alert('No se pudo generar el PDF de registro. Por favor, intente nuevamente.');
+      alert(`No se pudo generar el PDF de registro para ${impresora.referencia}. Por favor, intente nuevamente.`);
     }
   };
 
