@@ -1,6 +1,7 @@
 'use client';
 
 import { Impresora, EstadoCaso } from '@/types/impresora';
+import { generarPDFListado, descargarPDF } from '@/lib/pdf';
 
 interface ListaImpresorasProps {
   impresoras: Impresora[];
@@ -68,8 +69,52 @@ export default function ListaImpresoras({
     });
   };
 
+  /**
+   * Maneja la descarga del listado de impresoras en PDF
+   * Complejidad: O(n) donde n es el número de impresoras
+   */
+  const manejarDescargarPDF = async (): Promise<void> => {
+    try {
+      const pdfBlob = await generarPDFListado(impresoras);
+      const fechaActual = new Date().toLocaleDateString('es-CO', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+      }).replace(/\//g, '-');
+      const nombreArchivo = `Listado_Impresoras_${fechaActual}.pdf`;
+      descargarPDF(pdfBlob, nombreArchivo);
+    } catch (error) {
+      console.error('Error al generar PDF del listado:', error);
+      alert('No se pudo generar el PDF del listado de impresoras. Por favor, verifique que hay impresoras registradas e intente nuevamente.');
+    }
+  };
+
   return (
     <>
+      {/* Botón para descargar listado en PDF */}
+      <div className="mb-4 flex justify-end">
+        <button
+          onClick={manejarDescargarPDF}
+          className="flex items-center gap-2 bg-green-600 text-white px-4 py-2.5 rounded-lg hover:bg-green-700 active:bg-green-800 transition-colors font-medium text-sm shadow-md"
+        >
+          <svg
+            className="w-5 h-5"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+            />
+          </svg>
+          Descargar Listado PDF
+        </button>
+      </div>
+
       {/* Vista de tarjetas para móvil */}
       <div className="block md:hidden space-y-4">
         {impresoras.map((impresora) => {
