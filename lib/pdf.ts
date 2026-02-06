@@ -140,11 +140,9 @@ async function agregarLogo(doc: jsPDF, x: number, y: number, width: number = 40,
 export async function generarPDFRegistro(impresora: Impresora): Promise<Blob> {
   const doc = new jsPDF();
   const pageWidth = doc.internal.pageSize.getWidth();
+  const pageHeight = doc.internal.pageSize.getHeight();
   const margin = 20;
   let yPos = margin;
-  
-  // Constante para limitar observaciones y garantizar una sola página
-  const MAX_OBSERVATION_LINES = 3;
 
   // Logo centrado en la parte superior
   const logoWidth = 100;
@@ -196,25 +194,51 @@ export async function generarPDFRegistro(impresora: Impresora): Promise<Blob> {
     yPos += 7;
   });
 
-  // Observaciones si existen (limitadas para garantizar una sola página)
+  // Observaciones si existen (mostrar TODAS las observaciones en una sola página)
   if (impresora.observaciones && impresora.observaciones.trim()) {
     yPos += 3;
     doc.setFont('helvetica', 'bold');
     doc.text('Observaciones:', margin, yPos);
     yPos += 5;
     doc.setFont('helvetica', 'normal');
+    
+    // Calcular espacio disponible para observaciones
+    // Espacio fijo para firma: 6 + 12 + 10 + 25 + 8 + 10 + 12 + 8 + 8 = ~100 puntos
+    const espacioParaFirma = 100;
+    const espacioDisponible = pageHeight - margin - yPos - espacioParaFirma;
+    
+    // Dividir el texto en líneas usando un ancho fijo
     doc.setFontSize(10);
     const observacionesLines = doc.splitTextToSize(impresora.observaciones, pageWidth - 2 * margin);
     
-    // Limitar observaciones usando la constante
-    const maxLines = Math.min(observacionesLines.length, MAX_OBSERVATION_LINES);
-    for (let i = 0; i < maxLines; i++) {
-      doc.text(observacionesLines[i], margin, yPos);
-      yPos += 5;
+    // Calcular el alto de línea necesario para que todo quepa
+    // Usar un mínimo de 4 puntos y máximo de 5 puntos por línea
+    let lineHeight = 5;
+    let totalHeight = observacionesLines.length * lineHeight;
+    
+    // Si no cabe con lineHeight de 5, reducir a 4
+    if (totalHeight > espacioDisponible) {
+      lineHeight = 4;
+      totalHeight = observacionesLines.length * lineHeight;
     }
-    if (observacionesLines.length > MAX_OBSERVATION_LINES) {
-      doc.text('...', margin, yPos);
-      yPos += 5;
+    
+    // Si aún no cabe, reducir el tamaño de fuente
+    if (totalHeight > espacioDisponible) {
+      doc.setFontSize(9);
+      const newLines = doc.splitTextToSize(impresora.observaciones, pageWidth - 2 * margin);
+      lineHeight = Math.max(3.5, espacioDisponible / newLines.length);
+      
+      // Mostrar todas las líneas con el nuevo tamaño
+      newLines.forEach((line: string) => {
+        doc.text(line, margin, yPos);
+        yPos += lineHeight;
+      });
+    } else {
+      // Mostrar todas las líneas con tamaño normal
+      observacionesLines.forEach((line: string) => {
+        doc.text(line, margin, yPos);
+        yPos += lineHeight;
+      });
     }
     yPos += 2;
   }
