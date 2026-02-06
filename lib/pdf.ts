@@ -129,8 +129,8 @@ async function agregarLogo(doc: jsPDF, x: number, y: number, width: number = 40,
  * 
  * Esta función crea un documento PDF con todos los datos de la impresora
  * registrada, incluyendo un espacio visible para la firma del cliente.
- * El PDF se genera con formato profesional y legible, con paginación automática
- * si el contenido excede una página. Incluye el número de caso consecutivo y el logo.
+ * El PDF se genera con formato profesional y legible, optimizado para
+ * caber siempre en una sola página. Incluye el número de caso consecutivo y el logo.
  * 
  * Complejidad: O(1) - Operaciones constantes de generación de PDF
  * 
@@ -140,36 +140,38 @@ async function agregarLogo(doc: jsPDF, x: number, y: number, width: number = 40,
 export async function generarPDFRegistro(impresora: Impresora): Promise<Blob> {
   const doc = new jsPDF();
   const pageWidth = doc.internal.pageSize.getWidth();
-  const pageHeight = doc.internal.pageSize.getHeight();
   const margin = 20;
   let yPos = margin;
+  
+  // Constante para limitar observaciones y garantizar una sola página
+  const MAX_OBSERVATION_LINES = 3;
 
   // Logo centrado en la parte superior
-  const logoWidth = 120;
-  const logoHeight = 20;
+  const logoWidth = 100;
+  const logoHeight = 16;
   const logoX = (pageWidth - logoWidth) / 2; // Centrar horizontalmente
   await agregarLogo(doc, logoX, yPos, logoWidth, logoHeight);
-  yPos += logoHeight + 10; // Espacio después del logo
+  yPos += logoHeight + 6; // Espacio después del logo
 
   // Título
-  doc.setFontSize(18);
+  doc.setFontSize(16);
   doc.setFont('helvetica', 'bold');
   doc.text('REGISTRO DE INGRESO DE IMPRESORA', pageWidth / 2, yPos, { align: 'center' });
-  yPos += 10;
+  yPos += 8;
 
   // Número de caso
   doc.setFontSize(10);
   doc.setFont('helvetica', 'normal');
   doc.text(`Número de Caso: ${impresora.numeroCaso}`, pageWidth - margin, yPos, { align: 'right' });
-  yPos += 8;
+  yPos += 6;
 
   // Línea separadora
   doc.setLineWidth(0.5);
   doc.line(margin, yPos, pageWidth - margin, yPos);
-  yPos += 10;
+  yPos += 8;
 
   // Información de la impresora
-  doc.setFontSize(12);
+  doc.setFontSize(11);
   doc.setFont('helvetica', 'normal');
   
   const datos = [
@@ -187,74 +189,75 @@ export async function generarPDFRegistro(impresora: Impresora): Promise<Blob> {
   ];
 
   datos.forEach(([label, value]) => {
-    yPos = verificarYPaginar(doc, yPos, 8, pageHeight, margin);
     doc.setFont('helvetica', 'bold');
     doc.text(label, margin, yPos);
     doc.setFont('helvetica', 'normal');
     doc.text(String(value), margin + 50, yPos);
-    yPos += 8;
+    yPos += 7;
   });
 
-  // Observaciones si existen
+  // Observaciones si existen (limitadas para garantizar una sola página)
   if (impresora.observaciones && impresora.observaciones.trim()) {
-    yPos = verificarYPaginar(doc, yPos, 20, pageHeight, margin);
-    yPos += 5;
+    yPos += 3;
     doc.setFont('helvetica', 'bold');
     doc.text('Observaciones:', margin, yPos);
-    yPos += 6;
+    yPos += 5;
     doc.setFont('helvetica', 'normal');
+    doc.setFontSize(10);
     const observacionesLines = doc.splitTextToSize(impresora.observaciones, pageWidth - 2 * margin);
     
-    observacionesLines.forEach((line: string) => {
-      yPos = verificarYPaginar(doc, yPos, 6, pageHeight, margin);
-      doc.text(line, margin, yPos);
-      yPos += 6;
-    });
-    yPos += 5;
+    // Limitar observaciones usando la constante
+    const maxLines = Math.min(observacionesLines.length, MAX_OBSERVATION_LINES);
+    for (let i = 0; i < maxLines; i++) {
+      doc.text(observacionesLines[i], margin, yPos);
+      yPos += 5;
+    }
+    if (observacionesLines.length > MAX_OBSERVATION_LINES) {
+      doc.text('...', margin, yPos);
+      yPos += 5;
+    }
+    yPos += 2;
   }
 
-  // Espacio para firma (más grande)
-  yPos = verificarYPaginar(doc, yPos, 80, pageHeight, margin);
-  yPos += 10;
+  // Espacio para firma (compacto)
+  yPos += 6;
   doc.setLineWidth(0.5);
   doc.line(margin, yPos, pageWidth - margin, yPos);
-  yPos += 20;
+  yPos += 12;
 
-  doc.setFontSize(14);
+  doc.setFontSize(12);
   doc.setFont('helvetica', 'bold');
   doc.text('FIRMA DEL CLIENTE', pageWidth / 2, yPos, { align: 'center' });
-  yPos += 15;
+  yPos += 10;
 
-  // Área amplia para firma (rectángulo)
-  yPos = verificarYPaginar(doc, yPos, 50, pageHeight, margin);
+  // Área compacta para firma (rectángulo)
   const firmaX = margin + 20;
   const firmaY = yPos;
   const firmaWidth = pageWidth - 2 * margin - 40;
-  const firmaHeight = 35; // Espacio más grande para la firma
+  const firmaHeight = 25; // Espacio compacto para la firma
   
   doc.setDrawColor(200, 200, 200);
   doc.setLineWidth(0.5);
   doc.rect(firmaX, firmaY, firmaWidth, firmaHeight);
-  yPos += firmaHeight + 10;
+  yPos += firmaHeight + 8;
 
-  doc.setFontSize(10);
+  doc.setFontSize(9);
   doc.setFont('helvetica', 'normal');
   doc.setDrawColor(0, 0, 0);
   doc.text('Nombre del cliente:', margin + 20, yPos);
-  doc.text(impresora.cliente, margin + 20, yPos + 6);
-  yPos += 12;
+  doc.text(impresora.cliente, margin + 20, yPos + 5);
+  yPos += 10;
 
   doc.text('Fecha:', margin + 20, yPos);
-  doc.text(new Date(impresora.fechaIngreso).toLocaleDateString('es-CO'), margin + 20, yPos + 6);
-  yPos += 15;
+  doc.text(new Date(impresora.fechaIngreso).toLocaleDateString('es-CO'), margin + 20, yPos + 5);
+  yPos += 12;
 
   // Información de contacto
-  yPos = verificarYPaginar(doc, yPos, 20, pageHeight, margin);
   doc.setLineWidth(0.5);
   doc.line(margin, yPos, pageWidth - margin, yPos);
-  yPos += 10;
+  yPos += 8;
   
-  doc.setFontSize(9);
+  doc.setFontSize(8);
   doc.setFont('helvetica', 'normal');
   const contactoTexto = '601 211-0216    •    57 311-2757417    •    57 321-9671908    •    ventas@tecnirecargas.com    •    www.tecnirecargas.com';
   doc.text(contactoTexto, pageWidth / 2, yPos, { align: 'center' });
