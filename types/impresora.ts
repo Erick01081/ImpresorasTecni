@@ -22,6 +22,7 @@ export type EstadoCaso = 'pendiente' | 'en_proceso' | 'resuelto';
  * @property motivoResolucion - Descripción de cómo se resolvió el caso al cerrarlo (opcional)
  * @property descripcionProceso - Descripción del trabajo realizado cuando el estado es "en_proceso" (opcional)
  * @property numeroCaso - Número consecutivo del caso para identificación en documentos (number)
+ * @property registradoPor - Nombre de la persona que registró la impresora (string)
  */
 export interface Impresora {
   id: string;
@@ -37,6 +38,7 @@ export interface Impresora {
   motivoResolucion?: string;
   descripcionProceso?: string;
   numeroCaso: number;
+  registradoPor: string;
 }
 
 

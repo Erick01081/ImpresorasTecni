@@ -15,7 +15,8 @@ CREATE TABLE IF NOT EXISTS impresoras (
   "fechaActualizacionEstado" TIMESTAMP WITH TIME ZONE,
   "motivoResolucion" TEXT DEFAULT '',
   "descripcionProceso" TEXT DEFAULT '',
-  "numeroCaso" INTEGER NOT NULL DEFAULT 1
+  "numeroCaso" INTEGER NOT NULL DEFAULT 1,
+  "registradoPor" TEXT NOT NULL DEFAULT 'Erick'
 );
 
 -- Bloque de migración suave: agrega columnas camelCase si la tabla ya existía sin ellas
@@ -78,6 +79,13 @@ BEGIN
     SET "numeroCaso" = numeradas.num
     FROM numeradas
     WHERE impresoras.id = numeradas.id;
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_name = 'impresoras' AND column_name = 'registradoPor'
+  ) THEN
+    ALTER TABLE impresoras ADD COLUMN "registradoPor" TEXT NOT NULL DEFAULT 'Erick';
   END IF;
 END $$;
 

@@ -50,10 +50,10 @@ export async function leerImpresoras(): Promise<Impresora[]> {
         return [];
       }
 
-      // Asegurar que todas las impresoras tengan numeroCaso
       const impresoras = (data || []).map((imp: any) => ({
         ...imp,
-        numeroCaso: imp.numeroCaso || 0, // Valor por defecto si no existe
+        numeroCaso: imp.numeroCaso || 0,
+        registradoPor: imp.registradoPor || 'Erick',
       })) as Impresora[];
 
       return impresoras;
@@ -92,10 +92,10 @@ export async function obtenerImpresoraPorId(id: string): Promise<Impresora | nul
         return null;
       }
 
-      // Asegurar que tenga numeroCaso
       const impresora = {
         ...data,
         numeroCaso: data.numeroCaso || 0,
+        registradoPor: data.registradoPor || 'Erick',
       } as Impresora;
 
       return impresora;
@@ -164,6 +164,7 @@ async function obtenerSiguienteNumeroCaso(): Promise<number> {
  * @param nitCC - NIT o CC del cliente (string)
  * @param telefono - Teléfono de contacto (string)
  * @param observaciones - Observaciones opcionales (string | undefined)
+ * @param registradoPor - Nombre de quien registra la impresora (string)
  * @returns La impresora creada (Impresora)
  */
 export async function crearImpresora(
@@ -171,7 +172,8 @@ export async function crearImpresora(
   cliente: string,
   nitCC: string,
   telefono: string,
-  observaciones?: string
+  observaciones?: string,
+  registradoPor: string = 'Erick'
 ): Promise<Impresora> {
   const numeroCaso = await obtenerSiguienteNumeroCaso();
 
@@ -185,6 +187,7 @@ export async function crearImpresora(
     fechaIngreso: new Date().toISOString(),
     estado: 'pendiente',
     numeroCaso,
+    registradoPor,
   };
 
   const supabase = obtenerClienteSupabase();

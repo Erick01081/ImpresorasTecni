@@ -184,6 +184,7 @@ export async function generarPDFRegistro(impresora: Impresora): Promise<Blob> {
       hour: '2-digit',
       minute: '2-digit'
     })],
+    ['Registrado por:', impresora.registradoPor || 'No especificado'],
   ];
 
   datos.forEach(([label, value]) => {
@@ -385,6 +386,7 @@ export async function generarPDFEntrega(impresora: Impresora): Promise<Blob> {
       minute: '2-digit'
     })],
     ['Fecha de Entrega:', fechaEntrega],
+    ['Registrado por:', impresora.registradoPor || 'No especificado'],
   ];
 
   datos.forEach(([label, value]) => {
@@ -620,6 +622,7 @@ export async function generarPDFListado(impresoras: Impresora[]): Promise<Blob> 
         day: 'numeric'
       })}`,
       `Estado: ${obtenerTextoEstado(impresora.estado)}`,
+      `Registrado por: ${impresora.registradoPor || 'No especificado'}`,
     ];
 
     datos.forEach((linea) => {

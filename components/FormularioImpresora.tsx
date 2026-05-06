@@ -38,6 +38,7 @@ export default function FormularioImpresora({
   const [nitCC, setNitCC] = useState<string>('');
   const [telefono, setTelefono] = useState<string>('');
   const [observaciones, setObservaciones] = useState<string>('');
+  const [registradoPor, setRegistradoPor] = useState<string>('Erick');
   const [error, setError] = useState<string>('');
   const [cargando, setCargando] = useState<boolean>(false);
 
@@ -52,6 +53,7 @@ export default function FormularioImpresora({
       setNitCC('');
       setTelefono('');
       setObservaciones('');
+      setRegistradoPor('Erick');
       setError('');
     } else if (impresoraEditar) {
       setReferencia(impresoraEditar.referencia);
@@ -59,6 +61,7 @@ export default function FormularioImpresora({
       setNitCC(impresoraEditar.nitCC);
       setTelefono(impresoraEditar.telefono);
       setObservaciones(impresoraEditar.observaciones || '');
+      setRegistradoPor(impresoraEditar.registradoPor || 'Erick');
       setError('');
     }
   }, [abierto, impresoraEditar]);
@@ -108,6 +111,7 @@ export default function FormularioImpresora({
             nitCC: nitCC.trim(),
             telefono: telefono.trim(),
             observaciones: observaciones.trim(),
+            registradoPor,
           }),
         });
 
@@ -131,6 +135,7 @@ export default function FormularioImpresora({
             nitCC: nitCC.trim(),
             telefono: telefono.trim(),
             observaciones: observaciones.trim(),
+            registradoPor,
           }),
         });
 
@@ -235,6 +240,25 @@ export default function FormularioImpresora({
               placeholder="Ej: 3001234567"
               required
             />
+          </div>
+
+          <div>
+            <label className="block text-gray-700 font-semibold mb-2 text-sm sm:text-base">
+              Registrado por <span className="text-red-500">*</span>:
+            </label>
+            <select
+              value={registradoPor}
+              onChange={(e) => {
+                setRegistradoPor(e.target.value);
+                setError('');
+              }}
+              className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-gray-900 bg-white"
+              required
+            >
+              <option value="Erick">Erick</option>
+              <option value="Paola">Paola</option>
+              <option value="Emilse">Emilse</option>
+            </select>
           </div>
 
           <div>

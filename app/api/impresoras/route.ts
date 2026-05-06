@@ -38,12 +38,12 @@ export async function GET(): Promise<NextResponse> {
 export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
     const body = await request.json();
-    const { referencia, cliente, nitCC, telefono, observaciones } = body;
+    const { referencia, cliente, nitCC, telefono, observaciones, registradoPor } = body;
 
     // Validar campos obligatorios
-    if (!referencia || !cliente || !nitCC || !telefono) {
+    if (!referencia || !cliente || !nitCC || !telefono || !registradoPor) {
       return NextResponse.json(
-        { error: 'Faltan campos obligatorios: referencia, cliente, nitCC, telefono' },
+        { error: 'Faltan campos obligatorios: referencia, cliente, nitCC, telefono, registradoPor' },
         { status: 400 }
       );
     }
@@ -53,7 +53,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       cliente.trim(),
       nitCC.trim(),
       telefono.trim(),
-      observaciones?.trim() || ''
+      observaciones?.trim() || '',
+      registradoPor.trim()
     );
 
     return NextResponse.json(nuevaImpresora, { status: 201 });

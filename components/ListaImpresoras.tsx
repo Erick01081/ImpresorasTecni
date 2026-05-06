@@ -141,6 +141,7 @@ export default function ListaImpresoras({
                 <p className="text-sm text-gray-600">Cliente: {impresora.cliente}</p>
                 <p className="text-sm text-gray-600">NIT/CC: {impresora.nitCC}</p>
                 <p className="text-sm text-gray-600">Tel: {impresora.telefono}</p>
+                <p className="text-sm text-gray-600">Registrado por: {impresora.registradoPor}</p>
                 <p className="text-xs text-gray-500 mt-1">
                   Ingreso: {formatearFecha(impresora.fechaIngreso)}
                 </p>
@@ -229,6 +230,9 @@ export default function ListaImpresoras({
                   Fecha Ingreso
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Registrado por
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Estado
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -260,6 +264,9 @@ export default function ListaImpresoras({
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm text-gray-500">{formatearFecha(impresora.fechaIngreso)}</div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm text-gray-900">{impresora.registradoPor}</div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span
